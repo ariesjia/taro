@@ -42,7 +42,6 @@ export interface FormItemProps {
 }
 
 export interface EventProps {
-
   /**
    * 手指触摸动作开始
    */
