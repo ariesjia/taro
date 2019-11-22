@@ -1,3 +1,4 @@
+import 'weui'
 import Nerv from 'nervjs'
 import omit from 'omit.js'
 import classNames from 'classnames'
@@ -10,7 +11,7 @@ function getTrueType (type, confirmType, password) {
   }
   if (confirmType === 'search') type = 'search'
   if (password) type = 'password'
-  if (type === 'number') type = 'number'
+  if (type === 'digit') type = 'number'
 
   return type
 }
@@ -33,27 +34,65 @@ class Input extends Nerv.Component {
 
     // input hook
     this.isOnComposition = false
+    this.onInputExcuted = false
+  }
+
+  componentDidMount () {
+    // 修复无法选择文件
+    if (this.props.type === 'file') {
+      this.inputRef.addEventListener('change', this.onInput)
+    }
+  }
+
+  componentWillUnMount () {
+    // 修复无法选择文件
+    if (this.props.type === 'file') {
+      this.inputRef.removeEventListener('change', this.onInput)
+    }
   }
 
   onInput (e) {
-    const { onInput, onChange = '' } = this.props
-    if (!this.isOnComposition) {
+    const {
+      type,
+      maxLength,
+      confirmType,
+      password,
+      onInput = '',
+      onChange = ''
+    } = this.props
+    if (!this.isOnComposition && !this.onInputExcuted) {
+      let value = e.target.value
+      const inputType = getTrueType(type, confirmType, password)
+      this.onInputExcuted = true
+      /* 修复 number 类型 maxLength 无效 */
+      if (inputType === 'number' && value && maxLength <= value.length) {
+        value = value.substring(0, maxLength)
+        e.target.value = value
+      }
+
       Object.defineProperty(e, 'detail', {
         enumerable: true,
-        value: {
-          value: e.target.value
-        }
+        value: { value }
       })
-      if (onChange) {
-        onChange && onChange(e)
-      } else {
-        onInput && onInput(e)
+      // 修复 IOS 光标跳转问题
+      if (!(['number', 'file'].indexOf(inputType) >= 0)) {
+        const pos = e.target.selectionEnd
+        setTimeout(
+          () => {
+            e.target.selectionStart = pos
+            e.target.selectionEnd = pos
+          }
+        )
       }
+
+      if (onChange) return onChange(e)
+      if (onInput) return onInput(e)
     }
   }
 
   onFocus (e) {
     const { onFocus } = this.props
+    this.onInputExcuted = false
     Object.defineProperty(e, 'detail', {
       enumerable: true,
       value: {
@@ -75,7 +114,9 @@ class Input extends Nerv.Component {
   }
 
   onKeyDown (e) {
-    const { onConfirm } = this.props
+    const { onConfirm, onKeyDown } = this.props
+    this.onInputExcuted = false
+    onKeyDown && onKeyDown(e)
     if (e.keyCode === 13 && onConfirm) {
       Object.defineProperty(e, 'detail', {
         enumerable: true,
@@ -92,10 +133,11 @@ class Input extends Nerv.Component {
 
     if (e.type === 'compositionend') {
       this.isOnComposition = false
+      this.onInputExcuted = false
+      this.onInput(e)
     } else {
       this.isOnComposition = true
     }
-    this.onInput(e)
   }
 
   render () {
@@ -130,13 +172,15 @@ class Input extends Nerv.Component {
 
     return (
       <input
-        ref={input => input && focus && input.focus()}
+        ref={input => {
+          this.inputRef = input
+          input && focus && input.focus()
+        }}
         {...otherProps}
         className={cls}
         placeholder={placeholder}
         disabled={disabled}
-        max={maxLength}
-        onChange={this.onInput}
+        maxlength={maxLength}
         onInput={this.onInput}
         onFocus={this.onFocus}
         onBlur={this.onBlur}
@@ -148,6 +192,10 @@ class Input extends Nerv.Component {
       />
     )
   }
+}
+
+Input.defaultProps = {
+  type: 'text'
 }
 
 export default Input

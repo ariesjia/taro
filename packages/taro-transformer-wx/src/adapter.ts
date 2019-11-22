@@ -2,7 +2,10 @@ export const enum Adapters {
   weapp = 'weapp',
   swan = 'swan',
   alipay = 'alipay',
-  quickapp = 'quickapp'
+  quickapp = 'quickapp',
+  tt = 'tt',
+  qq = 'qq',
+  jd = 'jd'
 }
 
 interface Adapter {
@@ -49,15 +52,75 @@ const alipayAdapter: Adapter = {
   type: Adapters.alipay
 }
 
+const ttAdapter: Adapter = {
+  if: 'tt:if',
+  else: 'tt:else',
+  elseif: 'tt:elif',
+  for: 'tt:for',
+  forItem: 'tt:for-item',
+  forIndex: 'tt:for-index',
+  key: 'tt:key',
+  type: Adapters.tt
+}
+
+const quickappAdapter: Adapter = {
+  if: 'if',
+  else: 'else',
+  elseif: 'elif',
+  for: 'for',
+  forItem: 'for-item',
+  forIndex: 'for-index',
+  key: 'key',
+  type: Adapters.quickapp
+}
+
+const qqAdapter: Adapter = {
+  if: 'qq:if',
+  else: 'qq:else',
+  elseif: 'qq:elif',
+  for: 'qq:for',
+  forItem: 'qq:for-item',
+  forIndex: 'qq:for-index',
+  key: 'qq:key',
+  type: Adapters.qq
+}
+
+const jdAdapter: Adapter = {
+  if: 'jd:if',
+  else: 'jd:else',
+  elseif: 'jd:elif',
+  for: 'jd:for',
+  forItem: 'jd:for-item',
+  forIndex: 'jd:for-index',
+  key: 'jd:key',
+  type: Adapters.jd
+}
+
 export let Adapter: Adapter = weixinAdapter
 
+export const isNewPropsSystem = () => {
+  return [Adapters.weapp, Adapters.swan, Adapters.tt, Adapters.qq, Adapters.alipay, Adapters.quickapp, Adapters.jd].includes(Adapter.type)
+}
+
 export function setAdapter (adapter: Adapters) {
-  switch (adapter) {
+  switch (adapter.toLowerCase()) {
     case Adapters.swan:
       Adapter = swanAdapter
       break
     case Adapters.alipay:
       Adapter = alipayAdapter
+      break
+    case Adapters.tt:
+      Adapter = ttAdapter
+      break
+    case Adapters.quickapp:
+      Adapter = quickappAdapter
+      break
+    case Adapters.qq:
+      Adapter = qqAdapter
+      break
+    case Adapters.jd:
+      Adapter = jdAdapter
       break
     default:
       Adapter = weixinAdapter

@@ -1,4 +1,6 @@
 import isPlainObject from 'lodash/isPlainObject'
+import { Current } from '@tarojs/taro'
+import { SimpleMap } from '@tarojs/utils'
 
 export function isEmptyObject (obj) {
   if (!obj || !isPlainObject(obj)) {
@@ -10,6 +12,14 @@ export function isEmptyObject (obj) {
     }
   }
   return true
+}
+
+export function isUndefined (o) {
+  return o === undefined
+}
+
+export function isNullOrUndef (o) {
+  return isUndefined(o) || o === null
 }
 
 /**
@@ -111,17 +121,32 @@ function diffArrToPath (to, from, res = {}, keyPrev = '') {
         if (arrTo !== arrFrom) {
           res[targetKey] = toItem
         } else if (arrTo && arrFrom) {
-          if (toItem.length === fromItem.length) {
-            diffArrToPath(toItem, fromItem, res, `${targetKey}`)
-          } else {
+          if (toItem.length < fromItem.length) {
             res[targetKey] = toItem
+          } else {
+            // 数组
+            diffArrToPath(toItem, fromItem, res, `${targetKey}`)
           }
         } else {
           if (!toItem || !fromItem || keyList(toItem).length < keyList(fromItem).length) {
             res[targetKey] = toItem
           } else {
             // 对象
-            diffObjToPath(toItem, fromItem, res, `${targetKey}.`)
+            let shouldDiffObject = isPlainObject(toItem)
+
+            shouldDiffObject &&
+            Object.keys(fromItem).some(key => {
+              if (typeof toItem[key] === 'undefined' && typeof fromItem[key] !== 'undefined') {
+                shouldDiffObject = false
+                return true
+              }
+            })
+
+            if (shouldDiffObject) {
+              diffObjToPath(toItem, fromItem, res, `${targetKey}.`)
+            } else {
+              res[targetKey] = toItem
+            }
           }
         }
       }
@@ -140,13 +165,13 @@ export function diffObjToPath (to, from, res = {}, keyPrev = '') {
     const toItem = to[key]
     const fromItem = from[key]
     const targetKey = `${keyPrev}${key}`
-    if (toItem === fromItem) {
-      continue
-    } else
-    if (!hasProp.call(from, key)) {
+    if (/^\$compid__/.test(key)) {
       res[targetKey] = toItem
-    } else
-    if (typeof toItem !== typeof fromItem) {
+    } else if (toItem === fromItem) {
+      continue
+    } else if (!hasProp.call(from, key)) {
+      res[targetKey] = toItem
+    } else if (typeof toItem !== typeof fromItem) {
       res[targetKey] = toItem
     } else {
       if (typeof toItem !== 'object') {
@@ -157,18 +182,33 @@ export function diffObjToPath (to, from, res = {}, keyPrev = '') {
         if (arrTo !== arrFrom) {
           res[targetKey] = toItem
         } else if (arrTo && arrFrom) {
-          if (toItem.length === fromItem.length) {
-            diffArrToPath(toItem, fromItem, res, `${targetKey}`)
-          } else {
+          if (toItem.length < fromItem.length) {
             res[targetKey] = toItem
+          } else {
+            // 数组
+            diffArrToPath(toItem, fromItem, res, `${targetKey}`)
           }
         } else {
           // null
           if (!toItem || !fromItem) {
             res[targetKey] = toItem
           } else {
-          // 对象
-            diffObjToPath(toItem, fromItem, res, `${targetKey}.`)
+            // 对象
+            let shouldDiffObject = isPlainObject(toItem)
+
+            shouldDiffObject &&
+            Object.keys(fromItem).some(key => {
+              if (typeof toItem[key] === 'undefined' && typeof fromItem[key] !== 'undefined') {
+                shouldDiffObject = false
+                return true
+              }
+            })
+
+            if (shouldDiffObject) {
+              diffObjToPath(toItem, fromItem, res, `${targetKey}.`)
+            } else {
+              res[targetKey] = toItem
+            }
           }
         }
       }
@@ -212,4 +252,52 @@ const _loadTime = (new Date()).getTime().toString()
 let _i = 1
 export function getUniqueKey () {
   return _loadTime + (_i++)
+}
+
+export function getElementById (component, id, type) {
+  if (!component) return null
+
+  let res
+  if (type === 'component') {
+    res = component.selectComponent(id)
+    res = res ? (res.$component || res) : null
+  } else {
+    const query = wx.createSelectorQuery().in(component)
+    res = query.select(id)
+  }
+
+  if (res) return res
+
+  return null
+}
+
+let id = 0
+function genId () {
+  return String(id++)
+}
+
+let compIdsMapper
+try {
+  compIdsMapper = new Map()
+} catch (error) {
+  compIdsMapper = new SimpleMap()
+}
+export function genCompid (key, isNeedCreate) {
+  if (!Current || !Current.current || !Current.current.$scope) return []
+
+  const prevId = compIdsMapper.get(key)
+  if (isNeedCreate) {
+    const id = genId()
+    compIdsMapper.set(key, id)
+    return [prevId, id]
+  } else {
+    const id = prevId || genId()
+    !prevId && compIdsMapper.set(key, id)
+    return [null, id]
+  }
+}
+
+let prefix = 0
+export function genCompPrefix () {
+  return String(prefix++)
 }

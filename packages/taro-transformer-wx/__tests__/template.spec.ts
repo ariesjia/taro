@@ -156,9 +156,11 @@ describe('Template', () => {
       removeShadowData(inst.state)
       expect(Object.keys(inst.state).length).toEqual(1)
       expect(template).toMatch(
-        `<test test=\"{{style}}\" __triggerObserer=\"{{ _triggerObserer }}\"></test>`
+        `<test compid=\"{{$compid__0}}\"></test>`
       )
-      expect(inst.state.style).toEqual('color:' + 'red')
+      expect(inst.testProps).toEqual({
+        test: 'color:' + 'red'
+      })
     })
 
     test('能在循环中使用, 无 return', () => {
@@ -276,9 +278,9 @@ describe('Template', () => {
         <block>
             <view>
                 <view style="{{item.$loopState__temp2}}" wx:for="{{loopArray0}}" wx:for-item="item">
-                    <image style="{{l.$loopState__temp4}}" wx:for="{{item.$anonymousCallee__1}}" wx:for-item="l"
+                    <image style="{{l.$loopState__temp4}}" wx:for="{{item.$anonymousCallee__0}}" wx:for-item="l"
                     />
-                    <view style="{{a.$loopState__temp6}}" wx:for="{{item.$anonymousCallee__2}}" wx:for-item="a"></view>
+                    <view style="{{a.$loopState__temp6}}" wx:for="{{item.$anonymousCallee__1}}" wx:for-item="a"></view>
                 </view>
             </view>
         </block>
@@ -290,10 +292,10 @@ describe('Template', () => {
         `font-size:12px;color:red`
       )
       expect(
-        instance.state.loopArray0[0].$anonymousCallee__1[0].$loopState__temp4
+        instance.state.loopArray0[0].$anonymousCallee__0[0].$loopState__temp4
       ).toMatch(`font-size:16px;color:green`)
       expect(
-        instance.state.loopArray0[0].$anonymousCallee__2[0].$loopState__temp6
+        instance.state.loopArray0[0].$anonymousCallee__1[0].$loopState__temp6
       ).toMatch(`font-size:20px;color:yellow`)
     })
   })
@@ -377,7 +379,7 @@ describe('Template', () => {
     })
   })
 
-  test('不支持 spread 表达式', () => {
+  test.skip('不支持 spread 表达式', () => {
     expect(() => {
       transform({
         ...baseOptions,
@@ -531,7 +533,7 @@ describe('Template', () => {
         // expect(props.$name).toBe('Custom')
         // expect(props.hidden).toBe(true)
         expect(template).toMatch(
-          `<custom hidden=\"{{true}}\" __triggerObserer=\"{{ _triggerObserer }}\"></custom>`
+          `<custom compid=\"{{$compid__1}}\"></custom>`
         )
       })
 
@@ -558,7 +560,13 @@ describe('Template', () => {
         // expect(props.$name).toBe('Custom')
         // expect(props.hidden).toBe(true)
         expect(template).toMatch(
-          `<custom wx:for=\"{{array}}\" __triggerObserer=\"{{ _triggerObserer }}\" wx:for-item=\"a1\"></custom>`
+          prettyPrint(`
+            <block>
+                <view>
+                    <custom wx:for=\"{{array}}\" wx:for-item=\"a1\"></custom>
+                </view>
+            </block>
+          `)
         )
       })
     })
@@ -599,12 +607,12 @@ describe('Template', () => {
           prettyPrint(`
           <block>
               <view class=\"container\">
-                  <view wx:key=\"{{number}}\" wx:for=\"{{numbers}}\" wx:for-item=\"number\">
+                  <view wx:key=\"number\" wx:for=\"{{numbers}}\" wx:for-item=\"number\">
                       <text class=\"li\">我是第{{number + 1}}个数字</text>
                   </view>
                   <view>
                       <block wx:if=\"{{enable}}\">
-                          <view wx:key=\"{{number}}\" wx:for=\"{{numbers}}\" wx:for-item=\"number\">
+                          <view wx:key=\"number\" wx:for=\"{{numbers}}\" wx:for-item=\"number\">
                               <text class=\"li\">我是第{{number + 1}}个数字</text>
                           </view>
                       </block>
@@ -633,7 +641,7 @@ describe('Template', () => {
       expect(template).toMatch(
         prettyPrint(`
         <block>
-            <ec-chart bindchange="handleChange" __triggerObserer="{{ _triggerObserer }}"></ec-chart>
+            <ec-chart bindchange="handleChange"></ec-chart>
         </block>
       `)
       )
@@ -656,7 +664,7 @@ describe('Template', () => {
       expect(template).toMatch(
         prettyPrint(`
         <block>
-            <ec-chart bindchange="handleChange" __triggerObserer="{{ _triggerObserer }}"></ec-chart>
+            <ec-chart bindchange="handleChange"></ec-chart>
         </block>
       `)
       )
@@ -814,7 +822,7 @@ describe('字符不转义', () => {
       expect(template).toMatch(
         prettyPrint(`
         <block>
-            <link __triggerObserer=\"{{ _triggerObserer }}\"></link>
+            <link></link>
         </block>
       `)
       )
@@ -840,6 +848,94 @@ describe('字符不转义', () => {
         </block>
       `)
       )
+    })
+  })
+
+  describe('复杂表达式', () => {
+    test('array of array', () => {
+      const { template, ast, code } = transform({
+        ...baseOptions,
+        isRoot: true,
+        code: buildComponent(`
+          return (
+            <View test={[{}]} />
+          )
+        `)
+      })
+
+      let inst = evalClass(ast)
+      expect(Object.keys(inst.state).length).toBe(1)
+      expect(inst.state.anonymousState__temp).toEqual([{}])
+    })
+
+    test('array of array', () => {
+      const { template, ast, code } = transform({
+        ...baseOptions,
+        isRoot: true,
+        code: buildComponent(`
+          return (
+            <View test={[[]]} />
+          )
+        `)
+      })
+
+      let inst = evalClass(ast)
+      expect(Object.keys(inst.state).length).toBe(1)
+      expect(inst.state.anonymousState__temp).toEqual([[]])
+    })
+
+    test('function', () => {
+      const { template, ast, code } = transform({
+        ...baseOptions,
+        isRoot: true,
+        code: buildComponent(`
+          return (
+            <View test={escape('')} />
+          )
+        `)
+      })
+
+      let inst = evalClass(ast)
+      expect(Object.keys(inst.state).length).toBe(1)
+      expect(inst.state.anonymousState__temp).toEqual('')
+    })
+
+    test('function', () => {
+      const { template, ast, code } = transform({
+        ...baseOptions,
+        isRoot: true,
+        code: buildComponent(`
+          return (
+            <View test={escape('')} />
+          )
+        `)
+      })
+
+      let inst = evalClass(ast)
+      expect(Object.keys(inst.state).length).toBe(1)
+      expect(inst.state.anonymousState__temp).toEqual('')
+    })
+  })
+
+  describe('ObjectExpression property key', () => {
+    test('StringLiteral', () => {
+      const { template, ast, code } = transform({
+        ...baseOptions,
+        isRoot: true,
+        code: buildComponent(`
+          return {
+              'weapp': (
+                  <View>weapp</View>
+              ),
+              'h5': (
+                  <View>h5</View>
+              )
+          }[process.env.TARO_ENV]
+        `)
+      })
+
+      const inst = evalClass(ast, '', true);
+      expect(template).toMatch(`'weapp' === 'weapp'`);
     })
   })
 })

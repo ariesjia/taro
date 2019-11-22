@@ -8,19 +8,39 @@ export interface Option {
   [key: string]: any;
 };
 
-type TogglableOptions = {
-  enable: boolean,
-  config: Option
+export type TogglableOptions<T = Option> = {
+  enable?: boolean;
+  config?: T;
+}
+
+export namespace PostcssOption {
+  export type cssModules = TogglableOptions<{
+    namingPattern: 'global' | string;
+    generateScopedName: string | ((localName: string, absoluteFilePath: string) => string);
+  }>;
 }
 
 export interface PostcssOption {
   autoprefixer?: TogglableOptions;
   pxtransform?: TogglableOptions;
-  plugins?: any[];
+  cssModules?: PostcssOption.cssModules;
 }
+
 
 export interface Chain {
   [key: string]: any;
+}
+
+export interface IOption {
+  [key: string]: any
+}
+
+export interface IH5RouterConfig {
+  mode?: 'hash' | 'browser' | 'multi',
+  customRoutes?: IOption,
+  basename?: string,
+  lazyload?: boolean | ((pagename: string) => boolean)
+  renamePagename?: (pagename: string) => string
 }
 
 export interface TaroH5Config {
@@ -32,10 +52,10 @@ export interface TaroH5Config {
   alias: Option;
   entry: webpack.Entry;
   output: webpack.Output;
+  router?: IH5RouterConfig;
   devServer: webpackDevServer.Configuration;
   enableSourceMap: boolean;
   enableExtract: boolean;
-  enableDll: boolean;
 
   cssLoaderOption: Option;
   styleLoaderOption: Option;
@@ -46,11 +66,7 @@ export interface TaroH5Config {
   fontUrlLoaderOption: Option;
   imageUrlLoaderOption: Option;
   miniCssExtractPluginOption: Option;
-  dllDirectory: string;
-  dllFilename: string;
-  dllEntry: {
-    [key: string]: string[];
-  };
+  esnextModules: string[];
 
   module?: {
     postcss?: PostcssOption;
@@ -60,7 +76,19 @@ export interface TaroH5Config {
 export interface TaroPlugins {
   babel: Option;
   csso?: TogglableOptions;
-  uglify?: TogglableOptions
+  uglify?: TogglableOptions;
+  sass?: Option;
+}
+
+export interface CopyOptions {
+  patterns: {
+    from: string;
+    to: string;
+    ignore: string[]
+  }[];
+  options: {
+    ignore: string[];
+  };
 }
 
 export interface TaroBaseConfig {
@@ -69,6 +97,7 @@ export interface TaroBaseConfig {
   publicPath: string;
   staticDirectory: string;
   chunkDirectory: string;
+  copy: CopyOptions;
 
   designWidth: number;
   deviceRatio?: number;
@@ -81,4 +110,6 @@ export interface TaroBaseConfig {
 
 export interface BuildConfig extends TaroBaseConfig, TaroH5Config {
   isWatch: boolean;
+  port?: number;
+  homePage?: [string, string]
 };

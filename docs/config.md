@@ -1,8 +1,8 @@
 ---
-title: 项目配置
+title: 编译配置
 ---
 
-项目配置存放于项目根目录下 `config` 目录中，包含三个文件
+编译配置存放于项目根目录下 `config` 目录中，包含三个文件
 
 - `index.js` 是通用配置
 - `dev.js` 是项目预览时的配置
@@ -10,7 +10,7 @@ title: 项目配置
 
 ## index.js —— 通用配置
 
-```jsx
+```js
 const config = {
   // 项目名称
   projectName: 'kj',
@@ -54,7 +54,10 @@ const config = {
           }
         }
       }
-    }
+    },
+    // 替换 JSX 中的属性名，参考：
+    // https://github.com/NervJS/taro/issues/2077
+    jsxAttributeNameReplace: {}
   },
   // H5 端专用配置
   h5: {
@@ -67,7 +70,7 @@ const config = {
         }
       }
     },
-    // 自定义 webpack 配置
+    // 自定义 Webpack 配置
     webpackChain: {},
     devServer: {}
   }
